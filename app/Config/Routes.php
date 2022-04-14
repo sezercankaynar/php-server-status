@@ -31,7 +31,7 @@ $routes->setAutoRoute(true);
 
 // We get a performance increase by specifying the default
 // route since we don't have to scan directories.
-$routes->get('/', 'Home::index');
+$routes->get('/', 'MorseController::ServerInfo');
 $routes->post('morse-api', 'MorseController::cpu');
 $routes->get('serverinfo', 'MorseController::ServerInfo');
 
