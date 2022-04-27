@@ -53,7 +53,7 @@ class MorseController extends BaseController
         ',' => '--..--',
         '?' => '..--..',
         '/' => '-..-.',
-        ' ' => ' ',
+        ' ' => '.......',
     ];
     function __construct()
     {
@@ -61,32 +61,36 @@ class MorseController extends BaseController
     }
     public function Cpu()
     {
-
-        helper('morse'); // Call morse helper for translations
-        $code = morseToString($this->request->getPost('command'), $this->morseDictionary); //Translate morse code to string
+        $code = $this->morseToString($this->request->getPost('command')); //Translate morse code to string
         if ($code == 'cpu') {
             /*
                 BEGIN:Server Status
             */
             $timeout = "1";
             $services = array();
-            $services[] = array("port" => stringToMorse('80', $this->morseDictionary),    "service" => stringToMorse("Web server", $this->morseDictionary),          "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('21', $this->morseDictionary),    "service" => stringToMorse("FTP", $this->morseDictionary),                 "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('3306', $this->morseDictionary),  "service" => stringToMorse("MYSQL", $this->morseDictionary),               "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('22', $this->morseDictionary),    "service" => stringToMorse("Open SSH", $this->morseDictionary),            "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('58846', $this->morseDictionary), "service" => stringToMorse("Deluge", $this->morseDictionary),              "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('8112', $this->morseDictionary),  "service" => stringToMorse("Deluge Web", $this->morseDictionary),          "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('8083', $this->morseDictionary),  "service" => stringToMorse("Vesta panel", $this->morseDictionary),         "ip" => stringToMorse("localhost", $this->morseDictionary), "status" => "");
-            $services[] = array("port" => stringToMorse('80', $this->morseDictionary),    "service" => stringToMorse("Internet Connection", $this->morseDictionary), "ip" => stringToMorse("google.com", $this->morseDictionary), "status" => "");
+            $services[] = array("port" => '80',    "service" => "Web server",          "ip" => "localhost");
+            $services[] = array("port" => '21',    "service" => "FTP",                 "ip" => "localhost");
+            $services[] = array("port" => '3306',  "service" => "MYSQL",               "ip" => "localhost");
+            $services[] = array("port" => '22',    "service" => "Open SSH",            "ip" => "localhost");
+            $services[] = array("port" => '58846', "service" => "Deluge",              "ip" => "localhost");
+            $services[] = array("port" => '8112',  "service" => "Deluge Web",          "ip" => "localhost");
+            $services[] = array("port" => '8083',  "service" => "Vesta panel",         "ip" => "localhost");
+            $services[] = array("port" => '80',    "service" => "Internet Connection", "ip" => "google.com");
 
-            foreach ($services  as &$service) {
-                $fp = @fsockopen(morseToString(trim($service['ip']), $this->morseDictionary), morseToString($service['port'], $this->morseDictionary), $errno, $errstr, $timeout); //Test connection
+            foreach ($services  as $serviceKey => $service) {
+                $fp = @fsockopen($service['ip'], $service['port'], $errno, $errstr, $timeout); //Test connection
                 if (!$fp) {
-                    $service['status'] = stringToMorse("Offline", $this->morseDictionary); //If connection is not successfull set the status offline
+                    $services[$serviceKey]["status"] = "Offline"; //If connection is not successfull set the status offline
                 } else {
-                    $service['status'] .= stringToMorse("Online", $this->morseDictionary); //If connection is successfull set the status online
+                    $services[$serviceKey]["status"] = "Online"; //If connection is successfull set the status online
                     fclose($fp);
                 }
+            }
+            foreach($services as $serviceKey => $service) {
+                foreach($service as $key => $val){
+                    $service[$key] = $this->stringToMorse($val);
+                }
+                $services[$serviceKey] = $service;
             }
             /*
                 END:Server Information
@@ -94,11 +98,25 @@ class MorseController extends BaseController
             /*
                 BEGIN:Server Information
             */
-            $totalDiskSpace = stringToMorse(number_format(disk_total_space(getcwd()) / 1024 / 1024), $this->morseDictionary); //MB
-            $freeDiskSpace = stringToMorse(number_format(disk_free_space(getcwd()) / 1024 / 1024), $this->morseDictionary); //MB
-            $ramUsage = stringToMorse(number_format(memory_get_usage() / 1024), $this->morseDictionary); //MB
+            $totalDiskSpace = $this->stringToMorse(number_format(disk_total_space(getcwd()) / 1024 / 1024)); //MB
+            $freeDiskSpace = $this->stringToMorse(number_format(disk_free_space(getcwd()) / 1024 / 1024)); //MB
+            $ramUsage = $this->stringToMorse(number_format(memory_get_usage() / 1024)); //MB
             $totalRam = trim(explode(':', exec('systeminfo | findstr /C:"Total Physical Memory'))[1]);
-            $totalRam = stringToMorse(number_format(intval(explode(' ', $totalRam)[0]) * 1024), $this->morseDictionary); //MB
+            $totalRam = $this->stringToMorse(number_format(intval(explode(' ', $totalRam)[0]) * 1024)); //MB
+            $load = null;
+            @exec("wmic cpu get loadpercentage /all", $output);
+            if ($output)
+            {
+                foreach ($output as $line)
+                {
+                    if ($line && preg_match("/^[0-9]+\$/", $line))
+                    {
+                        $load = $line;
+                        break;
+                    }
+                }
+            }
+            $cpuUsage = $this->stringToMorse("%".$load);
             /*
                 END:Server Information
             */
@@ -108,7 +126,8 @@ class MorseController extends BaseController
                 "totalDiskSpace" => $totalDiskSpace,
                 "freeDiskSpace" => $freeDiskSpace,
                 "totalRam" => $totalRam,
-                "ramUsage" => $ramUsage
+                "ramUsage" => $ramUsage,
+                "cpuUsage" => $cpuUsage,
             ];
             return $this->respond($response);
         }
@@ -124,5 +143,30 @@ class MorseController extends BaseController
         $data = json_decode($data, true);
         $data['morseDictionary'] = $this->morseDictionary;
         return view("server-info", $data);
+    }
+    private function morseToString($morseCode)
+    {
+        $morseLetters = explode(" ", $morseCode);
+        $code = '';
+        foreach ($morseLetters as $morseLetter) {
+            foreach ($this->morseDictionary as $key => $dictionaryLetter) {
+                if ($dictionaryLetter == $morseLetter) {
+                    $code .= $key;
+                }
+            }
+        }
+        return $code;
+    }
+
+    private function stringToMorse($string)
+    {
+        $stringParts = str_split(strtolower($string));
+        $morse = '';
+        foreach ($stringParts as $stringPart) {
+            if (array_key_exists($stringPart, $this->morseDictionary)) {
+                $morse .= $this->morseDictionary[$stringPart] . " ";
+            }
+        }
+        return $morse;
     }
 }

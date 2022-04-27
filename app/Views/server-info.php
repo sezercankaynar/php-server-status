@@ -42,6 +42,10 @@
                 <td>Ram Usage</td>
                 <td><?= morseToString($ramUsage,$morseDictionary) . " MB / " . morseToString($totalRam,$morseDictionary)." MB" ?></td>
             </tr>
+            <tr>
+                <td>CPU Usage</td>
+                <td>%<?= morseToString($cpuUsage,$morseDictionary) ?></td>
+            </tr>
         </table>
     </div>
 
